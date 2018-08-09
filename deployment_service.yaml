@@ -1,0 +1,62 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-example
+  namespace: megalab-allims-stage
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kube-example
+        environment: stage
+    spec:
+      containers:
+      - name: kube-example
+        image: 827942265855.dkr.ecr.us-east-1.amazonaws.com/megalab-allims:v3
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 30
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 30
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-example
+  namespace: megalab-allims-stage
+  labels:
+    environment: stage
+    app: kube-example
+    dns: route53
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: |-
+      arn:aws:acm:us-east-1:827942265855:certificate/d7b8dabd-9e97-4dd0-9657-1e6d8426e980
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: kube-example
